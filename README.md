@@ -2,20 +2,36 @@
 
 `GET /api/route/?start=...&finish=...` returns the driving route between two USA locations, the
 cost-optimal fuel stops along it (500-mile range, 10 mpg) and the total money spent on fuel.
-`GET /map/?start=...&finish=...` shows the same result on an interactive Leaflet map.
+Open `/` for the dashboard: a search form, the route on a map, the cost breakdown, and two charts
+showing why those stops were chosen.
 
 ## Run it
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Python 3.12+
 pip install -r requirements.txt
-export HTTP_USER_AGENT="fuel-route/1.0 (you@example.com)"   # Nominatim asks for a real contact
 python manage.py runserver
 python manage.py test routeplanner
 ```
 
+Then open <http://127.0.0.1:8000/>.
+
 No database or API key needed. `routeplanner/data/stations.csv` is already built; regenerate it with
 `python manage.py build_stations` (see "Data" below).
+
+## Dashboard
+
+`/` (and `/map/`) serve one page, which calls the API itself:
+
+- **Form** for start, finish and how much range is in the tank at departure. Submitting rewrites the
+  query string, so any result stays a shareable link and the back button works.
+- **Map** with the route, the chosen stops, and every station the planner considered (toggleable).
+- **Fuel price along the route** plots each corridor station by price and mile marker, with the chosen
+  stops marked and numbered: a cheap cluster being used, and an expensive stretch skipped, are visible
+  at a glance.
+- **Fuel in tank** plots the tank draining and refilling, which is what makes the greedy strategy legible.
+
+No build step: one template, vanilla JS, Leaflet from a CDN, charts drawn as inline SVG. Light and dark.
 
 ## API
 
@@ -24,6 +40,7 @@ No database or API key needed. `routeplanner/data/stations.csv` is already built
 | `start`, `finish` | yes | Free text (`"Dallas, TX"`) **or** `lat,lon` (`"32.78,-96.80"`) |
 | `include_geometry` | no | `false` drops the route GeoJSON (~375 KB for a coast-to-coast trip) |
 | `start_fuel_miles` | no | Range in the tank at departure, default 500 (full) |
+| `include_candidates` | no | `true` adds `candidates[]`, every station in the search corridor (what the dashboard charts) |
 
 ```
 GET /api/route/?start=Los Angeles, CA&finish=New York, NY

@@ -10,7 +10,8 @@ from .optimizer import InfeasibleRoute, plan_fuel_stops
 from .stations import get_station_index
 
 
-def build_plan(start_text, finish_text, *, include_geometry=True, start_fuel_miles=None):
+def build_plan(start_text, finish_text, *, include_geometry=True, start_fuel_miles=None,
+               include_candidates=False):
     t0 = time.perf_counter()
     cfg = settings.FUEL_PLANNER
     counter = ApiCallCounter()
@@ -92,6 +93,22 @@ def build_plan(start_text, finish_text, *, include_geometry=True, start_fuel_mil
             "compute_ms": round((time.perf_counter() - t0) * 1000, 1),
         },
     }
+    if include_candidates:
+        # Every station the optimiser could have chosen, so the UI can show what was
+        # considered and not just what was picked.
+        result["candidates"] = [
+            {
+                "mile": round(mile, 1),
+                "price": round(st.price, 4),
+                "name": st.name,
+                "city": st.city,
+                "state": st.state,
+                "off_route_miles": round(off, 1),
+                "lat": st.lat,
+                "lon": st.lon,
+            }
+            for mile, off, st in candidates
+        ]
     if include_geometry:
         result["route"] = {
             "type": "Feature",

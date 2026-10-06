@@ -32,9 +32,16 @@ def route_plan(request):
             return _error("start_fuel_miles must be >= 0.", 400)
 
     include_geometry = request.GET.get("include_geometry", "true").lower() != "false"
+    include_candidates = request.GET.get("include_candidates", "false").lower() == "true"
 
     try:
-        plan = build_plan(start, finish, include_geometry=include_geometry, start_fuel_miles=start_fuel)
+        plan = build_plan(
+            start,
+            finish,
+            include_geometry=include_geometry,
+            start_fuel_miles=start_fuel,
+            include_candidates=include_candidates,
+        )
     except RoutingError as exc:
         return _error(str(exc), exc.status)
     except InfeasibleRoute as exc:
@@ -46,5 +53,8 @@ def route_plan(request):
 
 @require_GET
 def route_map(request):
-    """Interactive Leaflet map; fetches the JSON from /api/route/ with the same query string."""
-    return render(request, "routeplanner/map.html", {"query": request.GET.urlencode()})
+    """Dashboard: form, map, charts and cost table.
+
+    Static page; it reads start/finish from its own query string and calls /api/route/.
+    """
+    return render(request, "routeplanner/map.html")

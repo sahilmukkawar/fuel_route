@@ -51,7 +51,7 @@ FUEL_PLANNER = {
     "OSRM_BASE_URL": os.environ.get("OSRM_BASE_URL", "https://router.project-osrm.org"),
     # Free geocoder, only used when start/finish are given as text (not "lat,lon").
     "NOMINATIM_URL": os.environ.get("NOMINATIM_URL", "https://nominatim.openstreetmap.org/search"),
-    "USER_AGENT": os.environ.get("HTTP_USER_AGENT", "fuel-route-assessment/1.0 (contact: you@example.com)"),
+    "USER_AGENT": os.environ.get("HTTP_USER_AGENT", "fuel-route/1.0 (contact: mukkawarsahil99@gmail.com)"),
     "HTTP_TIMEOUT_SECONDS": 15,
     # Stations are geocoded to city centroids, so allow a generous corridor.
     # The planner widens it step by step only if a leg is otherwise infeasible.

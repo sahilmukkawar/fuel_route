@@ -5,4 +5,5 @@ from . import views
 urlpatterns = [
     path("api/route/", views.route_plan, name="route-plan"),
     path("map/", views.route_map, name="route-map"),
+    path("", views.route_map, name="dashboard"),
 ]

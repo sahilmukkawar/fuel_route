@@ -146,3 +146,24 @@ class ApiTests(SimpleTestCase):
     def test_map_page(self):
         r = self.client.get("/map/", {"start": "a", "finish": "b"})
         self.assertEqual(r.status_code, 200)
+
+    def test_dashboard_served_at_root(self):
+        self.assertEqual(self.client.get("/").status_code, 200)
+
+    def test_candidates_absent_by_default(self):
+        with mock.patch("routeplanner.planner.fetch_route", return_value=self._fake_route()):
+            r = self.client.get("/api/route/", {"start": "32.78,-96.80", "finish": "41.88,-87.63"})
+        self.assertNotIn("candidates", r.json())
+
+    def test_candidates_returned_when_requested(self):
+        with mock.patch("routeplanner.planner.fetch_route", return_value=self._fake_route()):
+            r = self.client.get(
+                "/api/route/",
+                {"start": "32.78,-96.80", "finish": "41.88,-87.63", "include_candidates": "true"},
+            )
+        cands = r.json()["candidates"]
+        self.assertGreaterEqual(len(cands), len(r.json()["fuel_stops"]))
+        self.assertEqual([c["mile"] for c in cands], sorted(c["mile"] for c in cands))
+        for c in cands:
+            self.assertGreater(c["price"], 0)
+            self.assertTrue(c["name"])
