@@ -2,8 +2,7 @@
 
 `GET /api/route/?start=...&finish=...` returns the driving route between two USA locations, the
 cost-optimal fuel stops along it (500-mile range, 10 mpg) and the total money spent on fuel.
-Open `/` for the dashboard: a search form, the route on a map, the cost breakdown, and two charts
-showing why those stops were chosen.
+`/` serves a page with a search form, the route on a map, the cost table and two charts.
 
 ## Run it
 
@@ -14,24 +13,27 @@ python manage.py runserver
 python manage.py test routeplanner
 ```
 
-Then open <http://127.0.0.1:8000/>.
+Then open http://127.0.0.1:8000/.
 
 No database or API key needed. `routeplanner/data/stations.csv` is already built; regenerate it with
 `python manage.py build_stations` (see "Data" below).
 
 ## Dashboard
 
-`/` (and `/map/`) serve one page, which calls the API itself:
+`/` and `/map/` serve the same page. It reads start/finish from its own query string and calls
+`/api/route/` with `include_candidates=true`.
 
-- **Form** for start, finish and how much range is in the tank at departure. Submitting rewrites the
-  query string, so any result stays a shareable link and the back button works.
-- **Map** with the route, the chosen stops, and every station the planner considered (toggleable).
-- **Fuel price along the route** plots each corridor station by price and mile marker, with the chosen
-  stops marked and numbered: a cheap cluster being used, and an expensive stretch skipped, are visible
-  at a glance.
-- **Fuel in tank** plots the tank draining and refilling, which is what makes the greedy strategy legible.
+- Start, finish and starting range are form fields. Submitting rewrites the query string instead of
+  posting, so every result is a link you can paste and the back button works.
+- The map draws the route, the stops, and the stations in the corridor (checkbox, on by default).
+- "Fuel price along the route" plots every corridor station by price against its mile marker, with the
+  chosen stops filled in and numbered. The point is to show what the optimiser passed up, not just
+  what it took.
+- "Fuel in tank" plots gallons remaining against distance. The sawtooth is the plan: each drop is a leg,
+  each rise is a purchase.
 
-No build step: one template, vanilla JS, Leaflet from a CDN, charts drawn as inline SVG. Light and dark.
+One template, no build step. Vanilla JS, Leaflet from a CDN, charts drawn as inline SVG. Follows the
+OS light/dark setting.
 
 ## API
 
@@ -40,7 +42,7 @@ No build step: one template, vanilla JS, Leaflet from a CDN, charts drawn as inl
 | `start`, `finish` | yes | Free text (`"Dallas, TX"`) **or** `lat,lon` (`"32.78,-96.80"`) |
 | `include_geometry` | no | `false` drops the route GeoJSON (~375 KB for a coast-to-coast trip) |
 | `start_fuel_miles` | no | Range in the tank at departure, default 500 (full) |
-| `include_candidates` | no | `true` adds `candidates[]`, every station in the search corridor (what the dashboard charts) |
+| `include_candidates` | no | `true` adds `candidates[]`: every station in the corridor with its price and mile marker (~100 KB coast to coast) |
 
 ```
 GET /api/route/?start=Los Angeles, CA&finish=New York, NY
@@ -80,15 +82,3 @@ The CSV has no coordinates, so `build_stations` geocodes each station to its **c
 public [US-Cities-Database](https://github.com/kelvins/US-Cities-Database) (offline, zero per-request API calls).
 It also drops 620 Canadian rows, collapses duplicate OPIS IDs (keeping the cheapest listed price) and drops 5
 unmatched rows. Result: 6,623 stations.
-
-## Assumptions and limitations (worth saying in the Loom)
-
-- The vehicle **departs with a full tank that is not billed**, so `total_fuel_cost` is the money spent at stops.
-  Trips under 500 miles therefore cost $0. `start_fuel_miles` lets you change the starting range
-  (e.g. `start_fuel_miles=100`), but the vehicle must be able to reach a first station with it.
-- Station positions are city centroids, so `approx_miles_off_route` is an estimate. The planner searches a
-  10-mile corridor and widens to 25 then 50 miles only if a leg would otherwise be infeasible.
-- The public OSRM server is a demo service with no SLA. Point `OSRM_BASE_URL` at your own OSRM instance
-  or swap `clients.fetch_route` for OpenRouteService for production.
-- In-process cache (LocMem); use Redis behind multiple workers.
-"# fuel_route" 
